@@ -2851,6 +2851,11 @@ figcaption {
 }
 
 .form-group input {
+  /* --- 微信浏览器修复代码 --- */
+  min-width: 0; /* 1. 覆盖 flex 子项的默认最小宽度，允许其收缩 */
+  -webkit-appearance: none; /* 2. 移除 iOS 等基于 WebKit 的浏览器上的默认样式 */
+  appearance: none; /* 3. 移除默认的 UI 外观 */
+
   border: 1px solid var(--base-color-neutral--neutral-darkest);
   color: var(--base-color-brand--black);
   background-color: rgba(255, 255, 255, 0);
