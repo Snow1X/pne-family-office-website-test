@@ -7,8 +7,8 @@
     var lang = userLang.substr(0, 2).toLowerCase();
     if (lang === "zh") {
       // 只有当当前页面不是中文页面时才跳转
-      if (window.location.pathname.indexOf("/zh/") === -1) {
-        window.location.replace("/zh/");
+      if (window.location.pathname.indexOf("zh/") === -1) {
+        window.location.replace("zh/");
       }
     }
   }
@@ -18,8 +18,8 @@
 function setLangPreference(lang) {
   sessionStorage.setItem("langSelected", "true");
   if (lang === "zh") {
-    window.location.href = "/zh/";
+    window.location.href = "zh/";
   } else {
-    window.location.href = "/"; // 跳转到英文主页 (根目录)
+    window.location.href = "index.html"; // 跳转到英文主页 (根目录)
   }
 }
