@@ -184,6 +184,20 @@ document.addEventListener("DOMContentLoaded", function () {
       partnerDescription.innerHTML =
         partnerItem[API_FIELDS_MAP.description] || "";
 
+      // 重置内部所有元素的样式，使其继承父容器的样式类
+      const innerElements = partnerDescription.querySelectorAll("*");
+      innerElements.forEach((element) => {
+        // 重置所有内部元素的样式
+        element.style.margin = "0";
+        element.style.padding = "0";
+        element.style.fontSize = "inherit";
+        element.style.fontFamily = "inherit";
+        element.style.fontWeight = "inherit";
+        element.style.lineHeight = "inherit";
+        element.style.color = "inherit";
+        element.style.textAlign = "inherit";
+      });
+
       // 组装右侧内容
       contentRight.appendChild(partnerName);
       contentRight.appendChild(partnerDescription);
