@@ -150,7 +150,7 @@ document.addEventListener("DOMContentLoaded", function () {
       // 创建招聘卡片容器
       const jobCard = document.createElement("div");
       jobCard.className = "job-list-component border-primary job-card";
-      jobCard.setAttribute("data-target", `job-detail-${index + 1}`);
+      jobCard.setAttribute("data-job-index", index);
 
       // 创建职位标题区域
       const jobTitle = document.createElement("div");
@@ -196,44 +196,8 @@ document.addEventListener("DOMContentLoaded", function () {
       jobTitle.appendChild(jobInfo);
       jobTitle.appendChild(toggleButton);
 
-      // 创建详情容器
-      const detailContainer = document.createElement("div");
-      detailContainer.className = "job-detail-container collapsed";
-      detailContainer.id = `job-detail-${index + 1}`;
-
-      // 创建详情包装器
-      const detailWrapper = document.createElement("div");
-      detailWrapper.className = "job-detail-wrapper";
-
-      // 创建职位描述区域
-      const jobDescribe = document.createElement("div");
-      jobDescribe.className = "job-describe";
-
-      // 创建描述内容
-      const descContent = document.createElement("div");
-      descContent.className = `${descriptionClass} margin-top-auto`;
-
-      // 处理富文本内容
-      const description = jobItem[API_FIELDS_MAP.description] || "";
-      if (description.includes("<p>") || description.includes("<br>")) {
-        // 如果是HTML格式，直接使用innerHTML
-        descContent.innerHTML = description;
-      } else {
-        // 如果是纯文本，处理换行符
-        const formattedDescription = description
-          .replace(/\r\n/g, "<br>")
-          .replace(/\n/g, "<br>");
-        descContent.innerHTML = formattedDescription;
-      }
-
-      // 组装描述区域（不再添加标题）
-      jobDescribe.appendChild(descContent);
-      detailWrapper.appendChild(jobDescribe);
-      detailContainer.appendChild(detailWrapper);
-
-      // 组装完整卡片
+      // 组装完整卡片（移除详情容器，改用弹窗）
       jobCard.appendChild(jobTitle);
-      jobCard.appendChild(detailContainer);
 
       // 添加到虚拟容器
       fragment.appendChild(jobCard);
@@ -243,14 +207,147 @@ document.addEventListener("DOMContentLoaded", function () {
     jobContainer.innerHTML = "";
     jobContainer.appendChild(fragment);
 
+    // 创建招聘详情弹窗
+    createJobModal();
+
     // 重新绑定点击事件（因为是动态生成的元素）
-    bindJobCardEvents();
+    bindJobCardEvents(jobsData);
 
     if (DEBUG_MODE) console.log(getText("console.renderComplete", pageLang));
   }
 
-  // 6. 绑定卡片点击事件
-  function bindJobCardEvents() {
+  // 6. 创建招聘详情弹窗
+  function createJobModal() {
+    if (DEBUG_MODE) console.log("🏠 创建招聘详情弹窗");
+
+    // 检查是否已经存在弹窗
+    let existingModal = document.getElementById("job-modal");
+    if (existingModal) {
+      existingModal.remove();
+    }
+
+    // 创建弹窗容器
+    const modal = document.createElement("div");
+    modal.id = "job-modal";
+    modal.className = "job-modal";
+
+    // 创建弹窗内容
+    const modalContent = document.createElement("div");
+    modalContent.className = "job-modal-content";
+
+    // 创建关闭按钮
+    const closeButton = document.createElement("button");
+    closeButton.className = "job-modal-close";
+    closeButton.innerHTML = "&times;";
+    closeButton.setAttribute("aria-label", isChinese ? "关闭" : "Close");
+
+    // 创建弹窗头部
+    const modalHeader = document.createElement("div");
+    modalHeader.className = "job-modal-header";
+
+    // 创建弹窗主体
+    const modalBody = document.createElement("div");
+    modalBody.className = "job-modal-body";
+
+    // 组装弹窗
+    modalContent.appendChild(closeButton);
+    modalContent.appendChild(modalHeader);
+    modalContent.appendChild(modalBody);
+    modal.appendChild(modalContent);
+
+    // 添加到页面
+    document.body.appendChild(modal);
+
+    // 绑定关闭事件
+    closeButton.addEventListener("click", hideJobModal);
+    modal.addEventListener("click", function (e) {
+      if (e.target === modal) {
+        hideJobModal();
+      }
+    });
+
+    // 绑定ESC键关闭
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && modal.classList.contains("show")) {
+        hideJobModal();
+      }
+    });
+
+    if (DEBUG_MODE) console.log("✅ 弹窗创建完成");
+  }
+
+  // 7. 显示招聘详情弹窗
+  function showJobModal(jobData) {
+    if (DEBUG_MODE) console.log("💫 显示招聘详情弹窗", jobData);
+
+    const modal = document.getElementById("job-modal");
+    const modalHeader = modal.querySelector(".job-modal-header");
+    const modalBody = modal.querySelector(".job-modal-body");
+
+    if (!modal || !modalHeader || !modalBody) {
+      if (DEBUG_MODE) console.error("❌ 弹窗元素未找到");
+      return;
+    }
+
+    // 填充头部内容
+    const jobTitle = jobData[API_FIELDS_MAP.title] || "";
+    const jobType = jobData[API_FIELDS_MAP.type] || "";
+    const jobLocation = jobData[API_FIELDS_MAP.location] || "";
+
+    modalHeader.innerHTML = `
+      <h2 class="job-modal-title">${jobTitle}</h2>
+      <div class="job-modal-meta">
+        ${jobType} ｜ ${
+      isChinese ? "工作地点：" : "Work location: "
+    }${jobLocation}
+      </div>
+    `;
+
+    // 填充主体内容
+    const description = jobData[API_FIELDS_MAP.description] || "";
+    let formattedDescription = "";
+
+    if (description.includes("<p>") || description.includes("<br>")) {
+      // 如果是HTML格式，直接使用
+      formattedDescription = description;
+    } else {
+      // 如果是纯文本，处理换行符
+      formattedDescription = description
+        .replace(/\r\n/g, "<br>")
+        .replace(/\n/g, "<br>");
+    }
+
+    modalBody.innerHTML = `<div>${formattedDescription}</div>`;
+
+    // 统一处理富文本内容的样式，确保颜色和字号一致
+    const allTextElements = modalBody.querySelectorAll("*");
+    allTextElements.forEach((element) => {
+      // 移除可能影响样式的类名
+      element.className = "";
+      // 确保样式由CSS统一控制
+    });
+
+    // 显示弹窗
+    modal.classList.add("show");
+    document.body.style.overflow = "hidden"; // 禁止背景滚动
+
+    if (DEBUG_MODE) console.log("✅ 弹窗显示完成");
+  }
+
+  // 8. 隐藏招聘详情弹窗
+  function hideJobModal() {
+    if (DEBUG_MODE) console.log("🙈 隐藏招聘详情弹窗");
+
+    const modal = document.getElementById("job-modal");
+    if (modal) {
+      modal.classList.remove("show");
+      document.body.style.overflow = ""; // 恢复背景滚动
+    }
+
+    if (DEBUG_MODE) console.log("✅ 弹窗隐藏完成");
+  }
+  // 9. 绑定卡片点击事件
+  function bindJobCardEvents(jobsData) {
     if (DEBUG_MODE) console.log("🎯 开始绑定卡片点击事件");
     const jobCards = document.querySelectorAll(".job-card");
     if (DEBUG_MODE) console.log("   - 找到的卡片数量:", jobCards.length);
@@ -260,48 +357,19 @@ document.addEventListener("DOMContentLoaded", function () {
       card.addEventListener("click", function (event) {
         if (DEBUG_MODE) console.log("🔥 卡片被点击了!", this);
 
-        const targetId = this.getAttribute("data-target");
-        const targetContainer = document.getElementById(targetId);
-        const indicator = this.querySelector(".job-toggle-indicator");
+        const jobIndex = parseInt(this.getAttribute("data-job-index"));
+        const jobData = jobsData[jobIndex];
 
         if (DEBUG_MODE) {
-          console.log("   - targetId:", targetId);
-          console.log("   - targetContainer:", targetContainer);
-          console.log("   - indicator:", indicator);
+          console.log("   - jobIndex:", jobIndex);
+          console.log("   - jobData:", jobData);
         }
 
-        if (targetContainer && targetContainer.classList.contains("expanded")) {
-          // 收起卡片
-          if (DEBUG_MODE) console.log("   ↗️ 收起卡片");
-          targetContainer.classList.remove("expanded");
-          targetContainer.classList.add("collapsed");
-          if (indicator) indicator.classList.remove("rotated");
-
-          // 平滑滚动到卡片顶部
-          setTimeout(() => {
-            const cardElement = this;
-            if (typeof $ !== "undefined") {
-              // 如果jQuery可用
-              $("html, body").animate(
-                {
-                  scrollTop: $(cardElement).offset().top - 100,
-                },
-                600
-              );
-            } else {
-              // 原生JavaScript实现
-              cardElement.scrollIntoView({
-                behavior: "smooth",
-                block: "start",
-              });
-            }
-          }, 100);
-        } else if (targetContainer) {
-          // 展开卡片
-          if (DEBUG_MODE) console.log("   ↘️ 展开卡片");
-          targetContainer.classList.remove("collapsed");
-          targetContainer.classList.add("expanded");
-          if (indicator) indicator.classList.add("rotated");
+        if (jobData) {
+          if (DEBUG_MODE) console.log("   💫 显示弹窗");
+          showJobModal(jobData);
+        } else {
+          if (DEBUG_MODE) console.error("   ❌ 未找到对应的招聘数据");
         }
 
         // 阻止事件冒泡
@@ -312,7 +380,7 @@ document.addEventListener("DOMContentLoaded", function () {
     if (DEBUG_MODE) console.log("✅ 事件绑定完成");
   }
 
-  // 7. 从后端获取数据
+  // 10. 从后端获取数据
   if (DEBUG_MODE) console.log(getText("console.startRequest", pageLang));
 
   // 显示加载状态
